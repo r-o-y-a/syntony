@@ -3,11 +3,8 @@ s.options.sampleRate = 48000;
 s.waitForBoot {
 
 
-
 (
-//"/Volumes/Ljud 1TB/Supercollider/multiphonics/natalchart.scd".load;
-"/Users/roya/Documents/roya/supercollider/natalchart.scd".load;
-
+"getIntervals.scd".load;
 
 ~birthIntervals = ~intervals[0];
 ~transitIntervals = ~intervals[1];

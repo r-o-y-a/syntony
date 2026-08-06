@@ -15,7 +15,7 @@
 ~opposition = 4/3;
 
 
-~python = "/Users/roya/Documents/roya/supercollider/natalchart.py";
+~python = "/Users/roya/Documents/roya/supercollider/syntony/chart.py";
 
 ~cmd = "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3 % % % % % % % % % % % %".format(
     ~python,
