@@ -10,7 +10,8 @@ from datetime import datetime, timezone
 # the calculation here uses a tolerance of ±8° (called orb)
 # default intervals are assigned or can be sent from supercollider.
 
-# aspects are calculated for relationships relative to: natal chart, natal<->present, and present 
+# aspects are calculated and returned for relationships relative to: 
+# natal chart, natal<->present, and present 
 
 
 
