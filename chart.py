@@ -4,18 +4,13 @@ from itertools import combinations
 from datetime import datetime, timezone
 
 
-# this code calculates "aspects" in an astrological birth chart
-# for compositional use. aspects occur when relationships 
-# between planets have geometrically significant angles (0, 90, 180, etc)
-# the calculation here uses a tolerance of ±8° (called orb)
-# default intervals are assigned or can be sent from supercollider.
-
-# aspects are calculated and returned for relationships relative to: 
+# this code calculates planetary relationships for
 # natal chart, natal<->present, and present 
+# and returns the harmonics associated with 
+# the astrological aspects present in them
 
 
-
-# birth data from supercollider
+# inputs to calculate birth chart
 year = int(sys.argv[1])
 month = int(sys.argv[2])
 day = int(sys.argv[3])
@@ -23,20 +18,66 @@ hour = int(sys.argv[4])
 minute = int(sys.argv[5])
 utc_offset = float(sys.argv[6])
 
+# tolerance for deviation from an aspect
+orb = 2
 
-# aspect intervals
-conjunction = float(sys.argv[7])  if len(sys.argv) > 7  else 1/1 # unison
-sextile     = float(sys.argv[8])  if len(sys.argv) > 8  else 5/3 # major 6th
-square      = float(sys.argv[9])  if len(sys.argv) > 9  else 3/2 # 5th
-trine       = float(sys.argv[10]) if len(sys.argv) > 10 else 5/4 # major 3rd
-opposition  = float(sys.argv[11]) if len(sys.argv) > 11 else 4/3 # 4th
-
+# angle & harmonic values from https://en.wikipedia.org/wiki/Astrological_aspect
 aspects = {
-    "conjunction": (0,   8, conjunction),
-    "sextile":     (60,  6, sextile),
-    "square":      (90,  8, square),
-    "trine":       (120, 8, trine),
-    "opposition":  (180, 8, opposition)
+    "conjunction":   (0.00,   1),
+    "opposition":    (180.00, 2),
+
+    "square":        (90.00,  4),
+    "octile":        (45.00,  8),
+    "trioctile":     (135.00, 8),
+    "sexdecile":     (22.50, 16),
+    "sesquioctile":  (67.50, 16),
+    "quinsemioctile":(112.50,16),
+    "sepsemioctile": (157.50,16),
+
+    "trine":         (120.00, 3),
+    "sextile":       (60.00,  6),
+    "duodecile":     (30.00, 12),
+    "quincunx":      (150.00,12),
+
+    "quattuorvigintile": (15.00,24),
+    "squile":            (75.00,24),
+    "squine":            (105.00,24),
+    "quindecile24":      (165.00,24),
+
+    "quintile":      (72.00,  5),
+    "biquintile":    (144.00, 5),
+    "decile":        (36.00, 10),
+    "tridecile":     (108.00,10),
+    "quindecile15":  (24.00, 15),
+    "biquindecile":  (48.00, 15),
+    "quadraquindecile": (96.00,15),
+    "sepquindecile": (168.00,15),
+
+    "vigintile":     (18.00,20),
+    "trivigintile":  (54.00,20),
+    "sepvigintile":  (126.00,20),
+    "nonvigintile":  (162.00,20),
+
+    "quadragintile": (9.00,40),
+
+    "septile":       (51.43, 7),
+    "biseptile":     (102.86,7),
+    "triseptile":    (154.29,7),
+    "semiseptile":   (25.71,14),
+    "tresemiseptile":(77.14,14),
+    "quinsemiseptile":(128.57,14),
+
+    "novile":        (40.00, 9),
+    "binovile":      (80.00, 9),
+    "quadranovile":  (160.00,9),
+    "octodecile":    (20.00,18),
+    "trigintasextile": (10.00,36),
+
+    "undecile":      (32.83,11),
+    "biundecile":    (65.45,11),
+    "triundecile":   (98.18,11),
+    "quadundecile":  (130.91,11),
+    "quinundecile":  (163.63,11)
 }
 
 
@@ -97,7 +138,7 @@ def elements(name, d):
     }[name]
 
 
-# calculate planet position in 3d space (x,y,z)
+# calculate planet position in cartesian space
 def position(name, d):
     N, i, w, a, e, M = elements(name, d)
     N, i, w, M = map(radians, (N, i, w, M % 360))
@@ -236,56 +277,35 @@ transit_chart = calculate_chart(transit_d)
 
 
 
+def calculate_relationships(chart1, chart2=None):
 
-# relationships
-#for a, b in combinations(birth_chart, 2):
+    relationships = []
 
-#    angle = (birth_chart[b] - birth_chart[a]) % 360
-#    distance = min(angle, 360-angle)
-#    aspect = "-"
+    if chart2 is None:
 
-#    for name, (target, tolerance, ratio) in aspects.items():
-#        if abs(distance-target) <= tolerance:
-#            aspect = name
-#            break
+        pairs = (
+            (
+                chart1[a],
+                chart1[b]
+            )
+            for a, b in combinations(chart1, 2)
+        )
 
-    # simple output for supercollider
-#    print(a, b, round(angle, 2), aspect)
+    else:
 
+        pairs = (
+            (
+                chart2[transit_planet],
+                chart1[natal_planet]
+            )
+            for transit_planet in chart2
+            for natal_planet in chart1
+        )
 
-
-# calculate birth relationships and map aspects to intervals
-intervals = []
-
-for a, b in combinations(birth_chart, 2):
-
-    angle = (
-        birth_chart[b] - birth_chart[a]
-    ) % 360
-
-    distance = min(
-        angle,
-        360 - angle
-    )
-
-    for name, (target, tolerance, ratio) in aspects.items():
-
-        if abs(distance - target) <= tolerance:
-
-            intervals.append(ratio)
-
-            break
-
-
-# calculate transit-natal relationships and map aspects to intervals
-transit_intervals = []
-
-for transit_planet in transit_chart:
-
-    for natal_planet in birth_chart:
+    for p1, p2 in pairs:
 
         angle = (
-            transit_chart[transit_planet] - birth_chart[natal_planet]
+            p2 - p1
         ) % 360
 
         distance = min(
@@ -293,37 +313,45 @@ for transit_planet in transit_chart:
             360 - angle
         )
 
-        for name, (target, tolerance, ratio) in aspects.items():
+        for name, (target, harmonic) in aspects.items():
 
-            if abs(distance - target) <= tolerance:
+            offset = min(
+                abs(distance - target),
+                360 - abs(distance - target)
+            )
 
-                transit_intervals.append(ratio)
+            if offset <= orb:
+
+                if name == "quindecile24" or name == "quindecile15":
+                    name = "quindecile"
+
+                relationships.append([
+                    name,
+                    harmonic,
+                    round(offset, 2),
+                    round(distance, 2)
+                ])
 
                 break
 
+    return relationships
 
 
-# calculate current relationships and map aspects to intervals
-current_intervals = []
+birth_relationships = calculate_relationships(
+    birth_chart
+)
 
-for a, b in combinations(transit_chart, 2):
+transit_relationships = calculate_relationships(
+    birth_chart,
+    transit_chart
+)
 
-    angle = (
-        transit_chart[b] - transit_chart[a]
-    ) % 360
+current_relationships = calculate_relationships(
+    transit_chart
+)
 
-    distance = min(
-        angle,
-        360 - angle
-    )
-
-    for name, (target, tolerance, ratio) in aspects.items():
-
-        if abs(distance - target) <= tolerance:
-
-            current_intervals.append(ratio)
-
-            break
-        
-# output only decimal interval arrays for SuperCollider
-print([intervals, transit_intervals, current_intervals])
+print([
+    birth_relationships,
+    transit_relationships,
+    current_relationships
+])
