@@ -5,7 +5,7 @@
 ~day = 23;
 ~hour = 11;
 ~minute = 55;
-~utcOffset = -8;
+~utcOffset = -8; // seattle
 
 ~python = "/Users/roya/Documents/roya/supercollider/syntony/chart.py";
 

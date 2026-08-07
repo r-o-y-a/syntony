@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 
 
 # this code calculates planetary relationships for
-# natal chart, natal<->present, and present 
-# and returns the harmonics associated with 
-# the astrological aspects present in them
+# natal chart, natal<->present, and current datetime. 
+# it returns the circle harmonics associated with 
+# their associated astrological aspects.
 
 
 # inputs to calculate birth chart
@@ -21,63 +21,74 @@ utc_offset = float(sys.argv[6])
 # tolerance for deviation from an aspect
 orb = 2
 
-# angle & harmonic values from https://en.wikipedia.org/wiki/Astrological_aspect
+# data from: https://en.wikipedia.org/wiki/Astrological_aspect
+# numerator = how many steps from 0° (which specific division)
+# denominator = number of equal divisions of the circle
+
+# aspects are irreducible fractions, ignore direction, and use smallest angular distance
+# astrology does not include every possible denominator for historical reasons
+
 aspects = {
-    "conjunction":   (0.00,   1),
-    "opposition":    (180.00, 2),
+    "conjunction":        (0.00,    1,  1),   # (angle, numerator, denominator)
+    "opposition":         (180.00,  1,  2),
+    "square":            (90.00,   1,  4),
 
-    "square":        (90.00,  4),
-    "octile":        (45.00,  8),
-    "trioctile":     (135.00, 8),
-    "sexdecile":     (22.50, 16),
-    "sesquioctile":  (67.50, 16),
-    "quinsemioctile":(112.50,16),
-    "sepsemioctile": (157.50,16),
+    "octile":            (45.00,   1,  8),
+    "trioctile":         (135.00,  3,  8),
 
-    "trine":         (120.00, 3),
-    "sextile":       (60.00,  6),
-    "duodecile":     (30.00, 12),
-    "quincunx":      (150.00,12),
+    "sexdecile":         (22.50,   1, 16),
+    "sesquioctile":      (67.50,   3, 16),
+    "quinsemioctile":    (112.50,  5, 16),
+    "sepsemioctile":     (157.50,  7, 16),
 
-    "quattuorvigintile": (15.00,24),
-    "squile":            (75.00,24),
-    "squine":            (105.00,24),
-    "quindecile24":      (165.00,24),
+    "trine":             (120.00,  1,  3),
+    "sextile":           (60.00,   1,  6),
 
-    "quintile":      (72.00,  5),
-    "biquintile":    (144.00, 5),
-    "decile":        (36.00, 10),
-    "tridecile":     (108.00,10),
-    "quindecile15":  (24.00, 15),
-    "biquindecile":  (48.00, 15),
-    "quadraquindecile": (96.00,15),
-    "sepquindecile": (168.00,15),
+    "duodecile":         (30.00,   1, 12),
+    "quincunx":          (150.00,  5, 12),
+    "quattuorvigintile": (15.00,   1, 24),
+    "squile":            (75.00,   5, 24),
+    "squine":            (105.00,  7, 24),
+    "quindecile24":      (165.00, 11, 24),
 
-    "vigintile":     (18.00,20),
-    "trivigintile":  (54.00,20),
-    "sepvigintile":  (126.00,20),
-    "nonvigintile":  (162.00,20),
+    "quintile":          (72.00,   1,  5),
+    "biquintile":        (144.00,  2,  5),
 
-    "quadragintile": (9.00,40),
+    "decile":            (36.00,   1, 10),
+    "tridecile":         (108.00,  3, 10),
 
-    "septile":       (51.43, 7),
-    "biseptile":     (102.86,7),
-    "triseptile":    (154.29,7),
-    "semiseptile":   (25.71,14),
-    "tresemiseptile":(77.14,14),
-    "quinsemiseptile":(128.57,14),
+    "quindecile15":      (24.00,   1, 15),
+    "biquindecile":      (48.00,   2, 15),
+    "quadraquindecile":  (96.00,   4, 15),
+    "sepquindecile":     (168.00,  7, 15),
 
-    "novile":        (40.00, 9),
-    "binovile":      (80.00, 9),
-    "quadranovile":  (160.00,9),
-    "octodecile":    (20.00,18),
-    "trigintasextile": (10.00,36),
+    "vigintile":         (18.00,   1, 20),
+    "trivigintile":      (54.00,   3, 20),
+    "sepvigintile":      (126.00,  7, 20),
+    "nonvigintile":      (162.00,  9, 20),
 
-    "undecile":      (32.83,11),
-    "biundecile":    (65.45,11),
-    "triundecile":   (98.18,11),
-    "quadundecile":  (130.91,11),
-    "quinundecile":  (163.63,11)
+    "quadragintile":     (9.00,    1, 40),
+
+    "septile":           (51.43,   1,  7),
+    "biseptile":         (102.86,  2,  7),
+    "triseptile":        (154.29,  3,  7),
+
+    "semiseptile":       (25.71,   1, 14),
+    "tresemiseptile":    (77.14,   3, 14),
+    "quinsemiseptile":   (128.57,  5, 14),
+
+    "novile":            (40.00,   1,  9),
+    "binovile":          (80.00,   2,  9),
+    "quadranovile":      (160.00,  4,  9),
+
+    "octodecile":        (20.00,   1, 18),
+    "trigintasextile":   (10.00,   1, 36),
+    
+    "undecile":          (32.73,   1, 11),
+    "biundecile":        (65.45,   2, 11),
+    "triundecile":       (98.18,   3, 11),
+    "quadundecile":      (130.91,  4, 11),
+    "quinundecile":      (163.63,  5, 11),
 }
 
 
@@ -244,7 +255,6 @@ def pluto_position(d):
     )
 
 
-# chart
 def calculate_chart(d):
 
     sx, sy, sun_lon = sun_position(d)
@@ -282,7 +292,6 @@ def calculate_relationships(chart1, chart2=None):
     relationships = []
 
     if chart2 is None:
-
         pairs = (
             (
                 chart1[a],
@@ -290,9 +299,7 @@ def calculate_relationships(chart1, chart2=None):
             )
             for a, b in combinations(chart1, 2)
         )
-
     else:
-
         pairs = (
             (
                 chart2[transit_planet],
@@ -303,7 +310,6 @@ def calculate_relationships(chart1, chart2=None):
         )
 
     for p1, p2 in pairs:
-
         angle = (
             p2 - p1
         ) % 360
@@ -313,7 +319,7 @@ def calculate_relationships(chart1, chart2=None):
             360 - angle
         )
 
-        for name, (target, harmonic) in aspects.items():
+        for name, (target, numerator, denominator) in aspects.items():
 
             offset = min(
                 abs(distance - target),
@@ -327,7 +333,10 @@ def calculate_relationships(chart1, chart2=None):
 
                 relationships.append([
                     name,
-                    harmonic,
+                    numerator,
+                    denominator,
+                    #f"{numerator}/{denominator}",
+                    round(numerator / denominator),
                     round(offset, 2),
                     round(distance, 2)
                 ])
