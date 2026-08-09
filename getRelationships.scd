@@ -7,7 +7,8 @@
 ~minute = 55;
 ~utcOffset = -8; // seattle
 
-~python = "/Users/roya/Documents/roya/supercollider/syntony/chart.py";
+
+~python = "/Users/roya/Documents/roya/SuperCollider/syntony/chart.py";
 
 ~cmd = "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3 % % % % % % %".format(
 	~python,
@@ -21,9 +22,13 @@
 
 ~result = ~cmd.unixCmdGetStdOut;
 
-~relationships = ~result.replace($', $").interpret;
+
+~relationships = File.readAllString(
+	"/Users/roya/Documents/roya/SuperCollider/syntony/chart.json"
+).interpret;
 
 
+// data format: name, aspect numerator, aspect denominator, numerator/denominator, orb, angular separation
 ~birthRelationships = ~relationships[0];
 ~transitRelationships = ~relationships[1];
 ~currentRelationships = ~relationships[2];

@@ -3,41 +3,46 @@ s.options.sampleRate = 48000;
 s.waitForBoot {
 
 
-	"/Users/roya/Documents/roya/supercollider/syntony/getIntervals.scd".load;
+	"/Users/roya/Documents/roya/SuperCollider/syntony/getRelationships.scd".load;
 
-	// aspect name, harmonic, orb, angle
+	// data format: name, aspect numerator, aspect denominator, numerator/denominator, orb, angular separation
 	~birthRelationships = ~relationships[0];
 	~transitRelationships = ~relationships[1];
 	~currentRelationships = ~relationships[2];
-	~transitRelationships[0][1].postln;
+
+	// 81 possible pairs (9 x 9)
+	//~transitRelationships.size.postln;
+
+	~transitRelationships.do { |r|
+		var name = r[0];
+		var numerator = r[1];
+		var denominator = r[2];
+		var ratio = r[3];
+		var orb = r[4];
+		var angle = r[5];
+
+		// r.postln;
+		//[name, numerator, denominator].postln;
+	};
 
 
+	// dictionary of unique denominators ("families")
+	~denominators = Dictionary.new;
+	~transitRelationships.collect(_[2]).as(Set).do { |d|
+		var g = ~transitRelationships.select { |x| x[2] == d };
+		~denominators[d] = (
+			numerators: g.collect(_[1])
+		);
+
+	};
+
+
+	~families.postln;
 
 	~buf = Buffer.read(s, "/Users/roya/Desktop/temp/bowed_bass.wav");
 
 
-
-	SynthDef(\tone, { | freq = 400, dev = 1.02, amp = 0 |
-
-		var sinosc, sum = 0;
-
-		2.do { |count|
-			sinosc = SinOsc.ar(
-				freq * (count + 1) * LFNoise1.kr(Rand(0.05, 0.2) ! 2).range(dev.reciprocal, dev));
-
-			sinosc = sinosc * LFNoise1.kr(Rand(0.05, 8) ! 2).exprange(0.01, 1);
-
-			sum = sum + sinosc;
-		};
-
-		sum = sum * 0.05;
-		sum = sum * Lag3.kr(amp, 1);
-
-		Out.ar(0, sum);
-	}).add;
-
-
-
+	// play buffer silently to extract data
 	~x = {
 
 		var in;
@@ -53,8 +58,30 @@ s.waitForBoot {
 	}.play;
 
 
+	SynthDef(\tone, { | freq = 400, pitchDev = 1, amp = 0 |
 
-	// TODO: code here to create multiple synths with the calculated frequencies from ~transitIntervals
+		var sinosc, sum = 0;
+
+		// set number of harmonics to create
+		2.do { | count |
+			sinosc = SinOsc.ar(freq * (count + 1) * LFNoise1.kr(Rand(1, 2) ! 2).range(pitchDev.reciprocal, pitchDev));
+
+			//sinosc = sinosc * LFNoise1.kr(Rand(0.05, 8) ! 2).exprange(0.01, 1);
+
+			sum = sum + sinosc;
+		};
+
+		sum = sum * 0.05;
+		sum = sum * Lag3.kr(amp, 1);
+
+		Out.ar(0, sum);
+	}).add;
+
+
+
+	// TODO: create multiple synths
+
+
 
 	(
 		~amp = 0.3;
@@ -88,6 +115,8 @@ s.waitForBoot {
 		}).play;
 
 	)
+
+
 
 }
 )

@@ -1,12 +1,13 @@
 import sys
+import json
 from math import *
 from itertools import combinations
 from datetime import datetime, timezone
 
 
 # this code calculates planetary relationships for
-# natal chart, natal<->present, and current datetime. 
-# it returns the circle harmonics associated with 
+# natal chart, natal<->present, and current datetime.
+# it returns the circle harmonics associated with
 # their associated astrological aspects.
 
 
@@ -19,7 +20,7 @@ minute = int(sys.argv[5])
 utc_offset = float(sys.argv[6])
 
 # tolerance for deviation from an aspect
-orb = 2
+orb = 1
 
 # data from: https://en.wikipedia.org/wiki/Astrological_aspect
 # numerator = how many steps from 0° (which specific division)
@@ -83,7 +84,7 @@ aspects = {
 
     "octodecile":        (20.00,   1, 18),
     "trigintasextile":   (10.00,   1, 36),
-    
+
     "undecile":          (32.73,   1, 11),
     "biundecile":        (65.45,   2, 11),
     "triundecile":       (98.18,   3, 11),
@@ -132,19 +133,19 @@ transit_d = julian_date(
     # M = mean anomaly (where planet would be if it moved uniformly around its orbit)
 def elements(name, d):
     return {
-        "mercury": (48.3313+3.24587e-5*d, 7.0047+5e-8*d, 29.1241+1.01444e-5*d, .387098, 
+        "mercury": (48.3313+3.24587e-5*d, 7.0047+5e-8*d, 29.1241+1.01444e-5*d, .387098,
 .205635+5.59e-10*d, 168.6562+4.0923344368*d),
-        "venus": (76.6799+2.46590e-5*d, 3.3946+2.75e-8*d, 54.8910+1.38374e-5*d, .723330, 
+        "venus": (76.6799+2.46590e-5*d, 3.3946+2.75e-8*d, 54.8910+1.38374e-5*d, .723330,
 .006773-1.302e-9*d, 48.0052+1.6021302244*d),
-        "mars": (49.5574+2.11081e-5*d, 1.8497-1.78e-8*d, 286.5016+2.92961e-5*d, 1.523688, 
+        "mars": (49.5574+2.11081e-5*d, 1.8497-1.78e-8*d, 286.5016+2.92961e-5*d, 1.523688,
 .093405+2.516e-9*d, 18.6021+.5240207766*d),
-        "jupiter": (100.4542+2.76854e-5*d, 1.3030-1.557e-7*d, 273.8777+1.64505e-5*d, 5.20256, 
+        "jupiter": (100.4542+2.76854e-5*d, 1.3030-1.557e-7*d, 273.8777+1.64505e-5*d, 5.20256,
 .048498+4.469e-9*d, 19.8950+.0830853001*d),
-        "saturn": (113.6634+2.38980e-5*d, 2.4886-1.081e-7*d, 339.3939+2.97661e-5*d, 9.55475, 
+        "saturn": (113.6634+2.38980e-5*d, 2.4886-1.081e-7*d, 339.3939+2.97661e-5*d, 9.55475,
 .055546-9.499e-9*d, 316.9670+.0334442282*d),
-        "uranus": (74.0005+1.3978e-5*d, .7733+1.9e-8*d, 96.6612+3.0565e-5*d, 19.18171-1.55e-8*d, 
+        "uranus": (74.0005+1.3978e-5*d, .7733+1.9e-8*d, 96.6612+3.0565e-5*d, 19.18171-1.55e-8*d,
 .047318+7.45e-9*d, 142.5905+.011725806*d),
-        "neptune": (131.7806+3.0173e-5*d, 1.7700-2.55e-7*d, 272.8461-6.027e-6*d, 
+        "neptune": (131.7806+3.0173e-5*d, 1.7700-2.55e-7*d, 272.8461-6.027e-6*d,
 30.05826+3.313e-8*d, .008606+2.15e-9*d, 260.2471+.005995147*d)
     }[name]
 
@@ -319,6 +320,8 @@ def calculate_relationships(chart1, chart2=None):
             360 - angle
         )
 
+        best = None
+
         for name, (target, numerator, denominator) in aspects.items():
 
             offset = min(
@@ -328,20 +331,33 @@ def calculate_relationships(chart1, chart2=None):
 
             if offset <= orb:
 
-                if name == "quindecile24" or name == "quindecile15":
-                    name = "quindecile"
+                if (
+                    best is None
+                    or offset < best[4]
+                ):
+                    best = (
+                        name,
+                        numerator,
+                        denominator,
+                        offset,
+                        target
+                    )
 
-                relationships.append([
-                    name,
-                    numerator,
-                    denominator,
-                    #f"{numerator}/{denominator}",
-                    round(numerator / denominator),
-                    round(offset, 2),
-                    round(distance, 2)
-                ])
+        if best is not None:
 
-                break
+            name, numerator, denominator, offset, target = best
+
+            if name in ("quindecile24", "quindecile15"):
+                name = "quindecile"
+
+            relationships.append([
+                name,
+                numerator,
+                denominator,
+                round(numerator / denominator, 3),
+                round(offset, 2),
+                round(distance, 2)
+            ])
 
     return relationships
 
@@ -359,8 +375,16 @@ current_relationships = calculate_relationships(
     transit_chart
 )
 
-print([
-    birth_relationships,
-    transit_relationships,
-    current_relationships
-])
+
+#print([
+#    birth_relationships,
+#    transit_relationships,
+#    current_relationships
+#])
+
+with open("/Users/roya/Documents/roya/SuperCollider/syntony/chart.json", "w") as f:
+    json.dump([
+        birth_relationships,
+        transit_relationships,
+        current_relationships
+    ], f)
